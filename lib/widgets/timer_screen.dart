@@ -19,7 +19,6 @@ class _TimerScreenState extends State<TimerScreen>
   Color _borderColor = Colors.transparent;
   bool _isBlinking = false;
   Timer? _blinkTimer;
-  bool _postZeroActive = false;
   Timer? _postZeroTimer;
 
   RawDatagramSocket? _oscSocket;
@@ -101,7 +100,6 @@ class _TimerScreenState extends State<TimerScreen>
       _postZeroTimer?.cancel();
       _isBlinking = false;
       _blinkAnimationController.stop();
-      _postZeroActive = false;
       _borderColor = Colors.transparent;
       _remainingSeconds = totalSeconds;
       _displayedTime = _formatTime(_remainingSeconds);
@@ -152,13 +150,11 @@ class _TimerScreenState extends State<TimerScreen>
 
   void _startPostZeroTimer() {
     setState(() {
-      _postZeroActive = true;
     });
     _postZeroTimer = Timer(const Duration(minutes: 1), () {
       setState(() {
         _displayedTime = '--:--';
         _borderColor = Colors.transparent;
-        _postZeroActive = false;
       });
     });
   }
