@@ -1,6 +1,5 @@
 //lib/widgets/timer_screen.dart
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:stage_timer/widgets/upd_service.dart';
