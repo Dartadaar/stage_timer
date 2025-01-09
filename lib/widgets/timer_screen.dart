@@ -1,9 +1,8 @@
+//lib/widgets/timer_screen.dart
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:udp/udp.dart';
+import 'package:stage_timer/widgets/upd_service.dart';
 
 class TimerScreen extends StatefulWidget {
   const TimerScreen({super.key});
@@ -23,25 +22,13 @@ class _TimerScreenState extends State<TimerScreen>
   bool _postZeroActive = false;
   Timer? _postZeroTimer;
 
-  UDP? _udp;
-  Endpoint? _udpEndpoint;
-  static const int _oscPort = 21600; // Choose a port
-
-  late final AnimationController _blinkAnimationController =
-      AnimationController(
-    duration: const Duration(milliseconds: 500),
-    vsync: this,
-  );
-
-  late final Animation<double> _blinkAnimation =
-      Tween<double>(begin: 0.0, end: 1.0).animate(
-    CurvedAnimation(parent: _blinkAnimationController, curve: Curves.easeInOut),
-  );
+  late UdpService _udpService;
 
   @override
   void initState() {
     super.initState();
-    _initUdp();
+    _udpService = UdpService(onTimerCommandReceived: _startTimer);
+    _udpService.init();
   }
 
   @override
@@ -49,51 +36,8 @@ class _TimerScreenState extends State<TimerScreen>
     _timer?.cancel();
     _blinkTimer?.cancel();
     _postZeroTimer?.cancel();
-    _udp?.close();
-    _blinkAnimationController.dispose();
+    _udpService.dispose();
     super.dispose();
-  }
-
-  Future<void> _initUdp() async {
-    try {
-      _udpEndpoint = Endpoint.any(port: Port(_oscPort));
-      _udp = await UDP.bind(_udpEndpoint!);
-      debugPrint('UDP server started on port $_oscPort');
-
-      _udp?.asStream().listen((Datagram? datagram) {
-        if (datagram != null) {
-          final messageBytes = datagram.data;
-          debugPrint('Received message: $messageBytes');
-          final String message = utf8.decode(datagram.data);
-          if (message.startsWith('/timer')) {
-            final commaIndex = message.indexOf(',');
-            if (commaIndex != -1 && message.length > commaIndex + 2) {
-              var timeString = message.substring(commaIndex + 2).trim();
-              // Remove null characters from timeString
-              timeString = timeString.replaceAll('\u0000', '');
-              final parts = timeString.split(':');
-              if (parts.length == 2) {
-                final minutes = int.tryParse(parts[0]);
-                final seconds = int.tryParse(parts[1]);
-                if (minutes != null && seconds != null) {
-                  _startTimer(minutes * 60 + seconds);
-                } else {
-                  debugPrint('Invalid time format in UDP message: $message');
-                }
-              } else {
-                debugPrint('Invalid argument format in UDP message: $message');
-              }
-            } else {
-              debugPrint('Invalid OSC message format: $message');
-            }
-          } else {
-            debugPrint('Received unknown UDP message: $message');
-          }
-        }
-      });
-    } catch (e) {
-      debugPrint('Error initializing UDP: $e');
-    }
   }
 
   void _startTimer(int totalSeconds) {
@@ -101,7 +45,7 @@ class _TimerScreenState extends State<TimerScreen>
       _timer?.cancel();
       _postZeroTimer?.cancel();
       _isBlinking = false;
-      _blinkAnimationController.stop();
+      _blinkTimer?.cancel(); // Cancel any existing blink timer
       _postZeroActive = false;
       _borderColor = Colors.transparent;
       _remainingSeconds = totalSeconds;
@@ -128,22 +72,28 @@ class _TimerScreenState extends State<TimerScreen>
   }
 
   String _formatTime(int totalSeconds) {
-    final minutes = (totalSeconds ~/ 60).toString().padLeft(1, '0');
+    final minutes = (totalSeconds ~/ 60).toString().padLeft(2, '0');
     final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
     return '$minutes:$seconds';
   }
 
   void _triggerZeroReached() {
     setState(() {
-      _displayedTime = '0:00';
+      _displayedTime = '00:00';
       _borderColor = Colors.red;
       _isBlinking = true;
     });
-    _blinkAnimationController.repeat();
 
-    Future.delayed(const Duration(milliseconds: 500 * 3 * 2), () {
-      // 3 blinks
-      _blinkAnimationController.stop();
+    // Start blinking every second
+    _blinkTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _isBlinking = !_isBlinking;
+      });
+    });
+
+    // Stop blinking and start post-zero timer after 60 seconds)
+    Future.delayed(const Duration(seconds: 60), () {
+      _blinkTimer?.cancel();
       setState(() {
         _isBlinking = false;
       });
@@ -171,27 +121,32 @@ class _TimerScreenState extends State<TimerScreen>
       body: Stack(
         children: [
           Center(
-            child: AnimatedOpacity(
-              opacity: _isBlinking ? _blinkAnimation.value : 1.0,
-              duration: const Duration(milliseconds: 500),
+            child: Visibility(
+              visible:
+                  !_isBlinking, // Show only when not in the "off" blink state
               child: Text(
                 _displayedTime,
                 style: const TextStyle(
                   fontSize: 200,
                   fontWeight: FontWeight.bold,
                   fontFeatures: [FontFeature.tabularFigures()],
+                  color: Colors.white, // Ensure text is visible
                 ),
               ),
             ),
           ),
           IgnorePointer(
             ignoring: true,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: _borderColor,
-                  width: 40.0,
+            child: Visibility(
+              visible:
+                  !_isBlinking, // Show only when not in the "off" blink state
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: _borderColor,
+                    width: 40.0,
+                  ),
                 ),
               ),
             ),
