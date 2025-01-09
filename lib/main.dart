@@ -1,5 +1,5 @@
+//lib/main.dart
 import 'package:flutter/material.dart';
-
 
 import 'widgets/timer_screen.dart';
 

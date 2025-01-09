@@ -34,6 +34,7 @@ class UdpService {
       });
     } catch (e) {
       debugPrint('Error initializing UDP: $e');
+      // Consider showing an error dialog to the user if UDP fails to initialize.
     }
   }
 

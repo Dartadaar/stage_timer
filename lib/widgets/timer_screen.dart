@@ -32,7 +32,33 @@ class _TimerScreenState extends State<TimerScreen>
       onTimerCommandReceived: _startTimer,
       onTimerClearCommandReceived: _clearTimer, // Pass the new callback
     );
-    _udpService.init();
+    _udpService.init().then((_) {
+      // Show the dialog after UDP service is initialized
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showStartupDialog(context);
+      });
+    });
+  }
+
+  void _showStartupDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('UDP Port Open'),
+          content: const Text(
+              'This app is listening for commands on port 21600.\n\nYou can send the following commands:\n- `/timer "mm:ss"` (e.g., /timer "05:00")\n- `/timer clear`'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
