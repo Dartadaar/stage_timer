@@ -131,14 +131,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.15.0"
-  osc:
-    dependency: "direct main"
-    description:
-      name: osc
-      sha256: "5252beff07c0ecb1e94af5cd5e2b1fefe80c10367c5d49fadfef2c9986e9969b"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.0"
   path:
     dependency: transitive
     description:
@@ -200,6 +192,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.3"
+  udp:
+    dependency: "direct main"
+    description:
+      name: udp
+      sha256: "50ea45d7ee80ad4c62de4ec0e8ed3ae65c36e9fe8cd0655a2bcd1503d2708e5a"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.0.3"
   vector_math:
     dependency: transitive
     description:

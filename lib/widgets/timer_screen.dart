@@ -1,8 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:osc/osc.dart';
+import 'package:udp/udp.dart';
 
 class TimerScreen extends StatefulWidget {
   const TimerScreen({super.key});
@@ -19,9 +20,11 @@ class _TimerScreenState extends State<TimerScreen>
   Color _borderColor = Colors.transparent;
   bool _isBlinking = false;
   Timer? _blinkTimer;
+  bool _postZeroActive = false;
   Timer? _postZeroTimer;
 
-  RawDatagramSocket? _oscSocket;
+  UDP? _udp;
+  Endpoint? _udpEndpoint;
   static const int _oscPort = 21600; // Choose a port
 
   late final AnimationController _blinkAnimationController =
@@ -38,7 +41,7 @@ class _TimerScreenState extends State<TimerScreen>
   @override
   void initState() {
     super.initState();
-    _initOsc();
+    _initUdp();
   }
 
   @override
@@ -46,51 +49,50 @@ class _TimerScreenState extends State<TimerScreen>
     _timer?.cancel();
     _blinkTimer?.cancel();
     _postZeroTimer?.cancel();
-    _oscSocket?.close();
+    _udp?.close();
     _blinkAnimationController.dispose();
     super.dispose();
   }
 
-  Future<void> _initOsc() async {
+  Future<void> _initUdp() async {
     try {
-      _oscSocket =
-          await RawDatagramSocket.bind(InternetAddress.anyIPv4, _oscPort);
-      debugPrint('OSC Server started on port ${_oscSocket?.port}');
+      _udpEndpoint = Endpoint.any(port: Port(_oscPort));
+      _udp = await UDP.bind(_udpEndpoint!);
+      debugPrint('UDP server started on port $_oscPort');
 
-      _oscSocket?.listen((RawSocketEvent event) {
-        if (event == RawSocketEvent.read) {
-          final Datagram? datagram = _oscSocket?.receive();
-          if (datagram != null) {
-            try {
-              final message = OSCMessage.fromBytes(datagram.data);
-              if (message.address == '/timer') {
-                if (message.arguments.isNotEmpty &&
-                    message.arguments[0] is String) {
-                  final timeString = message.arguments[0] as String;
-                  final parts = timeString.split(':');
-                  if (parts.length == 2) {
-                    final minutes = int.tryParse(parts[0]);
-                    final seconds = int.tryParse(parts[1]);
-                    if (minutes != null && seconds != null) {
-                      _startTimer(minutes * 60 + seconds);
-                    } else {
-                      debugPrint('Invalid time format: $timeString');
-                    }
-                  } else {
-                    debugPrint('Invalid argument format: $timeString');
-                  }
+      _udp?.asStream().listen((Datagram? datagram) {
+        if (datagram != null) {
+          final messageBytes = datagram.data;
+          debugPrint('Received message: $messageBytes');
+          final String message = utf8.decode(datagram.data);
+          if (message.startsWith('/timer')) {
+            final commaIndex = message.indexOf(',');
+            if (commaIndex != -1 && message.length > commaIndex + 2) {
+              var timeString = message.substring(commaIndex + 2).trim();
+              // Remove null characters from timeString
+              timeString = timeString.replaceAll('\u0000', '');
+              final parts = timeString.split(':');
+              if (parts.length == 2) {
+                final minutes = int.tryParse(parts[0]);
+                final seconds = int.tryParse(parts[1]);
+                if (minutes != null && seconds != null) {
+                  _startTimer(minutes * 60 + seconds);
                 } else {
-                  debugPrint('Invalid OSC message format: $message');
+                  debugPrint('Invalid time format in UDP message: $message');
                 }
+              } else {
+                debugPrint('Invalid argument format in UDP message: $message');
               }
-            } catch (e) {
-              debugPrint('Error parsing OSC message: $e');
+            } else {
+              debugPrint('Invalid OSC message format: $message');
             }
+          } else {
+            debugPrint('Received unknown UDP message: $message');
           }
         }
       });
     } catch (e) {
-      debugPrint('Error initializing OSC: $e');
+      debugPrint('Error initializing UDP: $e');
     }
   }
 
@@ -100,6 +102,7 @@ class _TimerScreenState extends State<TimerScreen>
       _postZeroTimer?.cancel();
       _isBlinking = false;
       _blinkAnimationController.stop();
+      _postZeroActive = false;
       _borderColor = Colors.transparent;
       _remainingSeconds = totalSeconds;
       _displayedTime = _formatTime(_remainingSeconds);
@@ -150,11 +153,13 @@ class _TimerScreenState extends State<TimerScreen>
 
   void _startPostZeroTimer() {
     setState(() {
+      _postZeroActive = true;
     });
     _postZeroTimer = Timer(const Duration(minutes: 1), () {
       setState(() {
         _displayedTime = '--:--';
         _borderColor = Colors.transparent;
+        _postZeroActive = false;
       });
     });
   }
