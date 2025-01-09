@@ -18,7 +18,8 @@ This application listens for OSC messages on **port 21600**. You can control the
    *   **Address:** `/timer`
    *   **Argument:** `"05:00"` (Note the quotation marks as it's a string argument)
 
-   The actual OSC string you would send might look like this (including null terminators common in OSC): /timer\x00\x00,s\x00\x0005:00\x00
+   The actual OSC string you would send might look like this (including null terminators common in OSC):
+   `/timer\x00\x00,s\x00\x0005:00\x00`
 
 
 **2. Clear the Timer:**
@@ -28,8 +29,8 @@ To reset and clear the timer, send the following OSC message:
 *   **Address:** `/timer`
 *   **Argument:** `"clear"`
 
-**Example:** The actual OSC string you would send might look like this: /timer\x00\x00,s\x00\x00clear\x00\x00\x00
-
+**Example:** The actual OSC string you would send might look like this:
+`/timer\x00\x00,s\x00\x00clear\x00\x00\x00`
 
 **Important Notes:**
 
