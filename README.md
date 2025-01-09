@@ -1,16 +1,13 @@
-# stage_timer
+# OSC Event Timer for Mobile Devices
 
-A new Flutter project.
+A simple Flutter application for iPad, iPhone, and other mobile devices that functions as a timer controlled via OSC (Open Sound Control) messages. This app is designed for use in live events and productions where precise timing and remote control are necessary.
 
-## Getting Started
+## Features
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+*   **OSC Control:**  Start the timer remotely by sending OSC messages over the local network.
+*   **Full-Screen Display:** The timer occupies the entire screen for maximum visibility.
+*   **Time Format:** Displays the timer in `MM:SS` format.
+*   **Visual Indicators:**
+    *   **Yellow Edges (1:00 remaining):**  The screen edges turn yellow when one minute is left on the timer.
+    *   **Red Edges (0:15 remaining):** The screen edges turn red when only 15 seconds remain.
+    *   **Blinking Red Screen (0:00 reached):** The screen blinks red three times upon reaching zero.
