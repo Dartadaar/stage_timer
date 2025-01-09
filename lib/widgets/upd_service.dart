@@ -12,8 +12,11 @@ class UdpService {
   static const int _oscPort = 21600; // Choose a port
 
   final Function(int) onTimerCommandReceived;
+  final VoidCallback onTimerClearCommandReceived;
 
-  UdpService({required this.onTimerCommandReceived});
+  UdpService(
+      {required this.onTimerCommandReceived,
+      required this.onTimerClearCommandReceived});
 
   Future<void> init() async {
     try {
@@ -39,11 +42,14 @@ class UdpService {
   }
 
   void _processMessage(String message) {
-    if (message.startsWith('/timer')) {
+    // Check for the specific "/timer clear" message with null characters
+    if (message == '/timer\x00\x00,s\x00\x00clear\x00\x00\x00') {
+      onTimerClearCommandReceived();
+    } else if (message.startsWith('/timer')) {
       final commaIndex = message.indexOf(',');
       if (commaIndex != -1 && message.length > commaIndex + 2) {
         var timeString = message.substring(commaIndex + 2).trim();
-        // Remove null characters from timeString
+        // Remove null characters from timeString - still necessary for other time formats
         timeString = timeString.replaceAll('\u0000', '');
         final parts = timeString.split(':');
         if (parts.length == 2) {

@@ -1,5 +1,6 @@
 //lib/widgets/timer_screen.dart
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:stage_timer/widgets/upd_service.dart';
@@ -27,7 +28,10 @@ class _TimerScreenState extends State<TimerScreen>
   @override
   void initState() {
     super.initState();
-    _udpService = UdpService(onTimerCommandReceived: _startTimer);
+    _udpService = UdpService(
+      onTimerCommandReceived: _startTimer,
+      onTimerClearCommandReceived: _clearTimer, // Pass the new callback
+    );
     _udpService.init();
   }
 
@@ -42,12 +46,7 @@ class _TimerScreenState extends State<TimerScreen>
 
   void _startTimer(int totalSeconds) {
     setState(() {
-      _timer?.cancel();
-      _postZeroTimer?.cancel();
-      _isBlinking = false;
-      _blinkTimer?.cancel(); // Cancel any existing blink timer
-      _postZeroActive = false;
-      _borderColor = Colors.transparent;
+      _resetState(); // Reuse reset logic
       _remainingSeconds = totalSeconds;
       _displayedTime = _formatTime(_remainingSeconds);
     });
@@ -69,6 +68,23 @@ class _TimerScreenState extends State<TimerScreen>
         _triggerZeroReached();
       }
     });
+  }
+
+  void _clearTimer() {
+    setState(() {
+      _resetState();
+      _displayedTime = '--:--';
+    });
+  }
+
+  void _resetState() {
+    _timer?.cancel();
+    _postZeroTimer?.cancel();
+    _isBlinking = false;
+    _blinkTimer?.cancel();
+    _postZeroActive = false;
+    _borderColor = Colors.transparent;
+    _remainingSeconds = 0;
   }
 
   String _formatTime(int totalSeconds) {
