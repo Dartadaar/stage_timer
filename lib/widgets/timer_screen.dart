@@ -1,5 +1,6 @@
-//lib/widgets/timer_screen.dart
 import 'dart:async';
+import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:stage_timer/widgets/upd_service.dart';
@@ -21,12 +22,14 @@ class _TimerScreenState extends State<TimerScreen>
   Timer? _blinkTimer;
   bool _postZeroActive = false;
   Timer? _postZeroTimer;
+  String _ipAddress = 'Loading...'; // Add IP address variable
 
   late UdpService _udpService;
 
   @override
   void initState() {
     super.initState();
+    _loadIpAddress(); // Fetch IP address on initialization
     _udpService = UdpService(
       onTimerCommandReceived: _startTimer,
       onTimerClearCommandReceived: _clearTimer, // Pass the new callback
@@ -39,14 +42,34 @@ class _TimerScreenState extends State<TimerScreen>
     });
   }
 
+  Future<void> _loadIpAddress() async {
+    try {
+      final interfaces = await NetworkInterface.list();
+      for (final interface in interfaces) {
+        for (final address in interface.addresses) {
+          if (address.type == InternetAddressType.IPv4 && !address.isLoopback) {
+            setState(() {
+              _ipAddress = address.address;
+            });
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _ipAddress = 'Could not retrieve IP';
+      });
+    }
+  }
+
   void _showStartupDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('UDP Port Open'),
-          content: const Text(
-              'This app is listening for commands on port 21600.\n\nYou can send the following commands:\n- `/timer "mm:ss"` (e.g., /timer "05:00")\n- `/timer clear`'),
+          content: Text(
+              'Your IP: $_ipAddress\n\nThis app is listening for commands on port 21600.\n\nYou can send the following commands:\n- `/timer "mm:ss"` (e.g., /timer "05:00")\n- `/timer clear`'),
           actions: <Widget>[
             TextButton(
               onPressed: () {
@@ -162,16 +185,21 @@ class _TimerScreenState extends State<TimerScreen>
       body: Stack(
         children: [
           Center(
-            child: Visibility(
-              visible:
-                  !_isBlinking, // Show only when not in the "off" blink state
-              child: Text(
-                _displayedTime,
-                style: const TextStyle(
-                  fontSize: 200,
-                  fontWeight: FontWeight.bold,
-                  fontFeatures: [FontFeature.tabularFigures()],
-                  color: Colors.white, // Ensure text is visible
+            child: GestureDetector(
+              onTap: () {
+                _showStartupDialog(context);
+              },
+              child: Visibility(
+                visible:
+                    !_isBlinking, // Show only when not in the "off" blink state
+                child: Text(
+                  _displayedTime,
+                  style: const TextStyle(
+                    fontSize: 200,
+                    fontWeight: FontWeight.bold,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                    color: Colors.white, // Ensure text is visible
+                  ),
                 ),
               ),
             ),
