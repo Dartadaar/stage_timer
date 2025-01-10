@@ -1,5 +1,4 @@
 // lib/widgets/send_command_dialog.dart
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -139,7 +138,7 @@ class _TimeFormatter extends TextInputFormatter {
         RegExp(r'^(\d{2})(\d+)'),
         (Match m) => '${m.group(1)}:${m.group(2)}',
       );
-    } else if (text.length >= 1) {
+    } else if (text.isNotEmpty) {
       newText = text;
     }
 
