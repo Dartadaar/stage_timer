@@ -35,15 +35,15 @@ class _SendCommandDialogState extends State<SendCommandDialog> {
     super.dispose();
   }
 
-  void _sendMessage(String message) {
+  void _sendMessage(String address, List<dynamic> arguments) {
     final ipAddress = _ipController.text;
     const remotePort = 21600;
     const localhostPort = 12600;
 
-    // Send to the specified IP and port 21600
-    widget.udpService.sendMessage(ipAddress, remotePort, message);
+    widget.udpService.sendMessage(ipAddress, remotePort, address, arguments);
 
-    widget.udpService.sendMessage('127.0.0.1', localhostPort, message);
+    widget.udpService
+        .sendMessage('127.0.0.1', localhostPort, address, arguments);
   }
 
   @override
@@ -80,7 +80,7 @@ class _SendCommandDialogState extends State<SendCommandDialog> {
                     if (time.isNotEmpty &&
                         time.length == 5 &&
                         time.split(':').length == 2) {
-                      _sendMessage('/timer "$time"');
+                      _sendMessage('/timer', [time]);
                       Navigator.of(context).pop();
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -93,7 +93,7 @@ class _SendCommandDialogState extends State<SendCommandDialog> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    _sendMessage('/timer clear');
+                    _sendMessage('/timer', ['clear']);
                     Navigator.of(context).pop();
                   },
                   child: const Text('SEND CLEAR'),
