@@ -1,8 +1,9 @@
+// lib/widgets/timer_screen.dart
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:stage_timer/widgets/send_command_dialog.dart';
 import 'package:stage_timer/widgets/upd_service.dart';
 
 class TimerScreen extends StatefulWidget {
@@ -22,22 +23,21 @@ class _TimerScreenState extends State<TimerScreen>
   Timer? _blinkTimer;
   bool _postZeroActive = false;
   Timer? _postZeroTimer;
-  String _ipAddress = 'Loading...'; // Add IP address variable
+  String _ipAddress = 'Loading...';
 
   late UdpService _udpService;
 
   @override
   void initState() {
     super.initState();
-    _loadIpAddress(); // Fetch IP address on initialization
+    _loadIpAddress();
     _udpService = UdpService(
       onTimerCommandReceived: _startTimer,
-      onTimerClearCommandReceived: _clearTimer, // Pass the new callback
+      onTimerClearCommandReceived: _clearTimer,
     );
     _udpService.init().then((_) {
-      // Show the dialog after UDP service is initialized
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showStartupDialog(context);
+        _showStartupInfoDialog(context);
       });
     });
   }
@@ -62,7 +62,7 @@ class _TimerScreenState extends State<TimerScreen>
     }
   }
 
-  void _showStartupDialog(BuildContext context) {
+  void _showStartupInfoDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -94,7 +94,7 @@ class _TimerScreenState extends State<TimerScreen>
 
   void _startTimer(int totalSeconds) {
     setState(() {
-      _resetState(); // Reuse reset logic
+      _resetState();
       _remainingSeconds = totalSeconds;
       _displayedTime = _formatTime(_remainingSeconds);
     });
@@ -148,14 +148,12 @@ class _TimerScreenState extends State<TimerScreen>
       _isBlinking = true;
     });
 
-    // Start blinking every second
     _blinkTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         _isBlinking = !_isBlinking;
       });
     });
 
-    // Stop blinking and start post-zero timer after 60 seconds)
     Future.delayed(const Duration(seconds: 60), () {
       _blinkTimer?.cancel();
       setState(() {
@@ -187,18 +185,25 @@ class _TimerScreenState extends State<TimerScreen>
           Center(
             child: GestureDetector(
               onTap: () {
-                _showStartupDialog(context);
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return SendCommandDialog(
+                      udpService: _udpService,
+                      initialIpAddress: _ipAddress,
+                    );
+                  },
+                );
               },
               child: Visibility(
-                visible:
-                    !_isBlinking, // Show only when not in the "off" blink state
+                visible: !_isBlinking,
                 child: Text(
                   _displayedTime,
                   style: const TextStyle(
                     fontSize: 200,
                     fontWeight: FontWeight.bold,
                     fontFeatures: [FontFeature.tabularFigures()],
-                    color: Colors.white, // Ensure text is visible
+                    color: Colors.white,
                   ),
                 ),
               ),
@@ -207,8 +212,7 @@ class _TimerScreenState extends State<TimerScreen>
           IgnorePointer(
             ignoring: true,
             child: Visibility(
-              visible:
-                  !_isBlinking, // Show only when not in the "off" blink state
+              visible: !_isBlinking,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
                 decoration: BoxDecoration(
